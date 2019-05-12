@@ -37,9 +37,11 @@ Run `carthage_dep.py` at project root folder to scan all project related folders
 > open graph.dot -a graphviz
 
 *--use_resolved*
+
 Check only Cartfile.resolved files. Otherwise checking Cartfile and Cartfile.private files by default.
 
 *--ignore-version*
+
 List only dependency names, ignoring whether there are version mismatches between different module references.
 
 ## License
