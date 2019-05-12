@@ -6,22 +6,26 @@
 
 You are developing an iOS application, which uses several frameworks. Both application and frameworks handle their dependencies using [Carthage](https://github.com/Carthage/Carthage).
 
-When one framework is developed stand-alone, it uses its own dependencies. When framework is embedded into application, application should link all framework dependencies.
+When a framework is developed stand-alone, it uses its own dependencies defined in Cartfile and Cartfile.private. When that framework is embedded into an application, the application has to embed all framework dependencies.
 
 ## Problem
 
-There is a possibility that application uses same dependencies, even without frameworks. There is a possibility that application uses different version than needed by framework. There is a possibility that application embeds several frameworks, which depends on several dependencies, which depend on several dependencies.
+There is a possibility that application already uses same dependencies as framework and that those are different versions. When application, or a dependency, uses several other frameworks, the possibility of version conflicts multiplies.
 
-## Not a Solution
+When you're developing a feature in application and/or framework locally, using Cartfile references to a branch at git server or to a local folder, you can check, if there are any other frameworks that need to refer to the new code, too.
 
-To make this potential dependency spiderweb more visual, I wrote a python script to find and parse either `Cartfile` and `Cartfile.private` or `Cartfile.resolved` contents from a folder and its subfolders and generate a [GraphViz](https://graphviz.gitlab.io/download/) compatible DOT graph file.
+These can cause compile problems or runtime crashes.
 
-This doesn't help much, but at least should make it easier to discover multiple different version number references to the same dependency.
+## Solution
+
+To make these dependencies more visual, python script `carthage_dep` finds and parses EITHER `Cartfile` and `Cartfile.private` OR `Cartfile.resolved` contents from a folder and its subfolders and generates a [GraphViz](https://graphviz.gitlab.io/download/) compatible DOT graph file.
+
+This should make it easier to discover version number conflicts between dependencies. This also gives a rough idea of overall application dependency graph.
 
 ## How to use
 
 ```
-project/
+project_root/
 ├── application/
 ├── framework_a/
 └── framework_b/
@@ -29,11 +33,15 @@ project/
 
 Run `carthage_dep.py` at project root folder to scan all project related folders at the same time. It will print `GraphViz` compatible text to output, which you can direct to a text file (and edit afterwards, if needed).
 
-> carthage_dep.py --resolved > graph.dot
+> carthage_dep.py > graph.dot
 > open graph.dot -a graphviz
 
-## What's Next
+*--use_resolved*
+Check only Cartfile.resolved files. Otherwise checking Cartfile and Cartfile.private files by default.
 
-That's about it. This will help me now to visually check dependency graph and verify that there are no major issues.
+*--ignore-version*
+List only dependency names, ignoring whether there are version mismatches between different module references.
 
-This could assist in discovering all the modules depending on some framework(s) that I need to develop locally and verify that I did change all references from network http://github.com to local file:///folder temporarily.
+## License
+
+carthage_dep is released under the MIT License.

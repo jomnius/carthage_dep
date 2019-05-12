@@ -3,6 +3,14 @@
 import os
 import sys
 
+dependency_names = {
+    "accengage-ios-sdk-releases": "Accengage",
+    "accengage-ios-extension-sdk-releases": "Accengage\nextension",
+    "usabilla-u4a-ios-swift-sdk": "Usabilla",
+    "test-cloud-xcuitest-extensions": "Xamarin\nXCUITest\nextensions",
+    "SwinjectStoryboard": "Swinject\nStoryboard"
+}
+
 def find_files(path, filenames):
     found = []
     for filename in filenames:
@@ -18,7 +26,7 @@ def find_files(path, filenames):
                     found.append(os.path.join(root, file))
     return found
 
-def parse_cartfile(filename):
+def parse_cartfile(filename, ignore_version):
     found = []
     module_name = filename.split("/")[-2]
     file = open(filename, "r")
@@ -29,22 +37,45 @@ def parse_cartfile(filename):
             continue
         # Module that has dependencies
         result.append(module_name)
-        # Dependency full name
-        result.append(items[1].strip('\"').replace(".git", ""))
-        # Dependency short name with version
-        if len(items) > 3 and not items[3].startswith("#"):
-            items[2] = "%s %s" % (items[2], items[3])
-        result.append(items[2].strip('\"'))
+        # Dependency (full) name
+        dependency = parse_dependency_name(items[1])
+        result.append(dependency)
+        # Dependency (short) name with version
+        if not ignore_version:
+            if len(items) > 3 and not items[3].startswith("#"):
+                items[2] = "%s %s" % (items[2], items[3])
+            result.append(items[2].strip('\"'))
         found.append(result)
     file.close()
     return found
+
+def parse_dependency_name(items):
+    dependency_fullname = items.strip('\"')
+    dependency_fullname = cleanup_dependency_fullname(dependency_fullname)
+    dependency = filter(None, dependency_fullname.strip().split("/"))[-1]
+    dependency = cleanup_dependency_name(dependency, dependency_names)
+    if dependency.endswith((".git", ".json", ".swift")):
+        dependency = dependency[:dependency.rfind(".")]
+    return dependency
+
+def cleanup_dependency_fullname(fullname):
+    if fullname == "adjust/ios_sdk":
+        return "Adjust"
+    return fullname
+
+def cleanup_dependency_name(name, dictionary):
+    return dictionary[name] if name in dictionary.keys() else name
 
 def generate_dot_graph(files, data):
     lines = []
     for module in data:
         for item in module:
-            (framework, dependency, version) = item
-            lines.append([framework, dependency, "%s\\n%s" % (dependency.split("/")[-1], version)])
+            if len(item) == 2:
+                (framework, dependency) = item
+                lines.append([framework, dependency])
+            elif len(item) == 3:
+                (framework, dependency, version) = item
+                lines.append([framework, dependency, "%s\\n%s" % (dependency.split("/")[-1], version)])
     # lines.sort(key = lambda x:x[1])
 
     # Dot header
@@ -53,23 +84,37 @@ def generate_dot_graph(files, data):
     graph_data += "\"\n\n"
     # Dot graph
     for line in lines:
-        graph_data += "\"%s\" -> \"%s\" -> \"%s\"\n" % (line[0], line[1], line[2])
+        if len(item) == 2:
+            graph_data += "\"%s\" -> \"%s\"\n" % (line[0], line[1])
+        elif len(item) == 3:
+            graph_data += "\"%s\" -> \"%s\" -> \"%s\"\n" % (line[0], line[1], line[2])
     # Dot footer
     graph_data += "}\n"
     return graph_data
 
 #####
 
-found = []
 path = os.getcwd()
 
+# Poor man's command line parameters
+# carthage_dep.py --use-resolved --ignore_version
+use_resolved = False
+ignore_version = False
+if len(sys.argv) > 1:
+    for arg in sys.argv:
+        if arg.endswith("resolved"):
+            use_resolved = True
+        elif arg.endswith("version"):
+            ignore_version = True
+
 files = []
-if len(sys.argv) > 1 and sys.argv[1].endswith("resolved"):
+if use_resolved:
     files = find_files(path, ["Cartfile.resolved"])
 else:
    files = find_files(path, ["Cartfile", "Cartfile.private"])
 
+found = []
 for filename in files:
-    found.append(parse_cartfile(filename))
+    found.append(parse_cartfile(filename, ignore_version))
 dot_graph = generate_dot_graph(files, found)
 print(dot_graph)
