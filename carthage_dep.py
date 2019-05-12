@@ -27,8 +27,11 @@ def parse_cartfile(filename):
         items = filter(None, line.strip().split(" "))
         if len(items) < 3 or (items[0].startswith("#")):
             continue
+        # Module that has dependencies
         result.append(module_name)
-        result.append(items[1].strip('\"'))
+        # Dependency full name
+        result.append(items[1].strip('\"').replace(".git", ""))
+        # Dependency short name with version
         if len(items) > 3 and not items[3].startswith("#"):
             items[2] = "%s %s" % (items[2], items[3])
         result.append(items[2].strip('\"'))
