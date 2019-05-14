@@ -31,6 +31,10 @@ project_root/
 └── framework_b/
 ```
 
+Install GraphViz
+
+> brew install graphviz
+
 Run `carthage_dep.py` at project root folder to scan all project related folders at the same time. It will print `GraphViz` compatible text to output, which you can direct to a text file (and edit afterwards, if needed).
 
 > carthage_dep.py > graph.dot
@@ -40,9 +44,21 @@ Run `carthage_dep.py` at project root folder to scan all project related folders
 
 Check only Cartfile.resolved files. Otherwise checking Cartfile and Cartfile.private files by default.
 
-*--ignore-version*
+*--show-version*
 
-List only dependency names, ignoring whether there are version mismatches between different module references.
+List dependency names with version number. Helps to check whether there are version mismatches between different  references.
+
+*--list-files*
+
+Show names of the files, which were used to create dependency graph.
+
+## Export
+
+> dot graph.dot -Tjpg -O
+> open graph.dot.jpg
+
+> dot graph.dot -Tpdf -O
+> open graph.dot.pdf
 
 ## License
 
